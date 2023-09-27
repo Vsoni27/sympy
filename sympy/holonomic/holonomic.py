@@ -5,7 +5,7 @@ various operations on them.
 
 from sympy.core import Add, Mul, Pow
 from sympy.core.numbers import (NaN, Infinity, NegativeInfinity, Float, I, pi,
-        equal_valued)
+        equal_valued, int_valued)
 from sympy.core.singleton import S
 from sympy.core.sorting import ordered
 from sympy.core.symbol import Dummy, Symbol
@@ -350,6 +350,8 @@ class DifferentialOperator:
         for i, j in enumerate(listofpoly):
             if j == self.parent.base.zero:
                 continue
+
+            j = self.parent.base.to_sympy(j)
 
             if i == 0:
                 print_str += '(' + sstr(j) + ')'
@@ -913,7 +915,7 @@ class HolonomicFunction:
         rhs.insert(0, K.zero)
 
         # differentiate both lhs and rhs
-        sol = _derivate_diff_eq(rhs)
+        sol = _derivate_diff_eq(rhs, K)
 
         # add the term y' in lhs to rhs
         sol = _add_lists(sol, [K.zero, K.one])
@@ -1008,7 +1010,7 @@ class HolonomicFunction:
                     coeff_mul[i][j + 1] += coeff_mul[i][j]
                     coeff_mul[i + 1][j] += coeff_mul[i][j]
                     if isinstance(coeff_mul[i][j], K.dtype):
-                        coeff_mul[i][j] = DMFdiff(coeff_mul[i][j])
+                        coeff_mul[i][j] = DMFdiff(coeff_mul[i][j], K)
                     else:
                         coeff_mul[i][j] = coeff_mul[i][j].diff(self.x)
 
@@ -1462,7 +1464,7 @@ class HolonomicFunction:
                 grp.append([i])
                 continue
             for j in grp:
-                if int(j[0] - i) == j[0] - i:
+                if int_valued(j[0] - i):
                     j.append(i)
                     intdiff = True
                     break
@@ -1474,7 +1476,7 @@ class HolonomicFunction:
         independent = True if all(len(i) == 1 for i in grp) else False
 
         allpos = all(i >= 0 for i in reals)
-        allint = all(int(i) == i for i in reals)
+        allint = all(int_valued(i) for i in reals)
 
         # if initial conditions are provided
         # then use them.
@@ -1777,7 +1779,7 @@ class HolonomicFunction:
             degree = len(listofdmp) - 1
             if - i - b <= 0 and degree - i - b >= 0:
                 s = s + listofdmp[degree - i - b] * y
-            y *= x - i
+            y *= R.from_sympy(x - i)
 
         return roots(R.to_sympy(s), x)
 
@@ -1964,7 +1966,7 @@ class HolonomicFunction:
             sol = S.Zero
             for j, i in enumerate(nonzeroterms):
 
-                if i < 0 or int(i) != i:
+                if i < 0 or not int_valued(i):
                     continue
 
                 i = int(i)
@@ -2545,7 +2547,7 @@ def _normalize(list_of, parent, negative=True):
     return DifferentialOperator(list_of_coeff, parent)
 
 
-def _derivate_diff_eq(listofpoly):
+def _derivate_diff_eq(listofpoly, K):
     """
     Let a differential equation a0(x)y(x) + a1(x)y'(x) + ... = 0
     where a0, a1,... are polynomials or rational functions. The function
@@ -2556,10 +2558,10 @@ def _derivate_diff_eq(listofpoly):
 
     sol = []
     a = len(listofpoly) - 1
-    sol.append(DMFdiff(listofpoly[0]))
+    sol.append(DMFdiff(listofpoly[0], K))
 
     for i, j in enumerate(listofpoly[1:]):
-        sol.append(DMFdiff(j) + listofpoly[i])
+        sol.append(DMFdiff(j, K) + listofpoly[i])
 
     sol.append(listofpoly[a])
     return sol
@@ -2647,17 +2649,16 @@ def _extend_y0(Holonomic, n):
                     r = r.as_expr()
                 sol += a * r
             y1.append(sol)
-            list_red = _derivate_diff_eq(list_red)
+            list_red = _derivate_diff_eq(list_red, K)
 
         return y0 + y1[len(y0):]
 
 
-def DMFdiff(frac):
+def DMFdiff(frac, K):
     # differentiate a DMF object represented as p/q
     if not isinstance(frac, DMF):
         return frac.diff()
 
-    K = frac.ring
     p = K.numer(frac)
     q = K.denom(frac)
     sol_num = - p * q.diff() + q * p.diff()

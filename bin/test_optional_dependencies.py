@@ -42,6 +42,7 @@ test_list = [
     '*jax*',
 
     # gmpy
+    'sympy/ntheory',
     'sympy/polys',
 
     # gmpy, numpy, scipy, autowrap, matplotlib
@@ -69,9 +70,11 @@ test_list = [
     'sympy/logic',
     'sympy/assumptions',
 
-    #stats
+    # stats
     'sympy/stats',
 
+    # lxml
+    "sympy/utilities/tests/test_mathml.py",
 ]
 
 
@@ -98,6 +101,7 @@ doctest_list = [
     '*aesara*',
 
     # gmpy
+    'sympy/ntheory',
     'sympy/polys',
 
     # autowrap
@@ -119,6 +123,8 @@ doctest_list = [
     #stats
     'sympy/stats',
 
+    # lxml
+    "sympy/utilities/mathml/",
 ]
 
 

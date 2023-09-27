@@ -2,7 +2,8 @@
 
 from abc import ABC, abstractmethod
 
-from sympy.core.backend import pi, AppliedUndef, Derivative, Matrix
+from sympy import pi, Derivative, Matrix
+from sympy.core.function import AppliedUndef
 from sympy.physics.mechanics.body_base import BodyBase
 from sympy.physics.mechanics.functions import _validate_coordinates
 from sympy.physics.vector import (Vector, dynamicsymbols, cross, Point,
@@ -132,8 +133,8 @@ class Joint(ABC):
     """
 
     def __init__(self, name, parent, child, coordinates=None, speeds=None,
-                 parent_point=None, child_point=None, parent_axis=None,
-                 child_axis=None, parent_interframe=None, child_interframe=None,
+                 parent_point=None, child_point=None, parent_interframe=None,
+                 child_interframe=None, parent_axis=None, child_axis=None,
                  parent_joint_pos=None, child_joint_pos=None):
 
         if not isinstance(name, str):
@@ -775,14 +776,14 @@ class PinJoint(Joint):
     """
 
     def __init__(self, name, parent, child, coordinates=None, speeds=None,
-                 parent_point=None, child_point=None, parent_axis=None,
-                 child_axis=None, parent_interframe=None, child_interframe=None,
+                 parent_point=None, child_point=None, parent_interframe=None,
+                 child_interframe=None, parent_axis=None, child_axis=None,
                  joint_axis=None, parent_joint_pos=None, child_joint_pos=None):
 
         self._joint_axis = joint_axis
         super().__init__(name, parent, child, coordinates, speeds, parent_point,
-                         child_point, parent_axis, child_axis,
-                         parent_interframe, child_interframe, parent_joint_pos,
+                         child_point, parent_interframe, child_interframe,
+                         parent_axis, child_axis, parent_joint_pos,
                          child_joint_pos)
 
     def __str__(self):
@@ -1038,14 +1039,14 @@ class PrismaticJoint(Joint):
     """
 
     def __init__(self, name, parent, child, coordinates=None, speeds=None,
-                 parent_point=None, child_point=None, parent_axis=None,
-                 child_axis=None, parent_interframe=None, child_interframe=None,
+                 parent_point=None, child_point=None, parent_interframe=None,
+                 child_interframe=None, parent_axis=None, child_axis=None,
                  joint_axis=None, parent_joint_pos=None, child_joint_pos=None):
 
         self._joint_axis = joint_axis
         super().__init__(name, parent, child, coordinates, speeds, parent_point,
-                         child_point, parent_axis, child_axis,
-                         parent_interframe, child_interframe, parent_joint_pos,
+                         child_point, parent_interframe, child_interframe,
+                         parent_axis, child_axis, parent_joint_pos,
                          child_joint_pos)
 
     def __str__(self):

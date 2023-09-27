@@ -11,18 +11,19 @@ This module contains functions to:
     - solve a system of Non Linear Equations with N variables and M equations
 """
 from sympy.core.sympify import sympify
-from sympy.core import (S, Pow, Dummy, pi, Expr, Wild, Mul, Equality,
+from sympy.core import (S, Pow, Dummy, pi, Expr, Wild, Mul,
                         Add, Basic)
 from sympy.core.containers import Tuple
 from sympy.core.function import (Lambda, expand_complex, AppliedUndef,
                                 expand_log, _mexpand, expand_trig, nfloat)
 from sympy.core.mod import Mod
-from sympy.core.numbers import igcd, I, Number, Rational, oo, ilcm
-from sympy.core.power import integer_log
+from sympy.core.numbers import I, Number, Rational, oo
+from sympy.core.intfunc import integer_log
 from sympy.core.relational import Eq, Ne, Relational
 from sympy.core.sorting import default_sort_key, ordered
 from sympy.core.symbol import Symbol, _uniquely_named_symbol
 from sympy.core.sympify import _sympify
+from sympy.external.gmpy import gcd as number_gcd, lcm as number_lcm
 from sympy.polys.matrices.linsolve import _linear_eq_to_dict
 from sympy.polys.polyroots import UnsolvableFactorError
 from sympy.simplify.simplify import simplify, fraction, trigsimp, nsimplify
@@ -757,13 +758,7 @@ def _solve_trig2(f, symbol, domain):
 
     x = Dummy('x')
 
-    # ilcm() and igcd() require more than one argument
-    if len(numerators) > 1:
-        mu = Rational(2)*ilcm(*denominators)/igcd(*numerators)
-    else:
-        assert len(numerators) == 1
-        mu = Rational(2)*denominators[0]/numerators[0]
-
+    mu = Rational(2)*number_lcm(*denominators)/number_gcd(*numerators)
     f = f.subs(symbol, mu*x)
     f = f.rewrite(tan)
     f = expand_trig(f)
@@ -1070,7 +1065,7 @@ def _solveset(f, symbol, domain, _check=False):
             solns = solver(expr, symbol, in_set)
             result += solns
     elif isinstance(f, Eq):
-        result = solver(Add(f.lhs, - f.rhs, evaluate=False), symbol, domain)
+        result = solver(Add(f.lhs, -f.rhs, evaluate=False), symbol, domain)
 
     elif f.is_Relational:
         from .inequalities import solve_univariate_inequality
@@ -1332,9 +1327,13 @@ def _invert_modular(modterm, rhs, n, symbol):
         base, expo = a.args
         if expo.has(symbol) and not base.has(symbol):
             # remainder -> solution independent of n of equation.
-            # m, rhs are made coprime by dividing igcd(m, rhs)
+            # m, rhs are made coprime by dividing number_gcd(m, rhs)
+            if not m.is_Integer and rhs.is_Integer and a.base.is_Integer:
+                return modterm, rhs
+
+            mdiv = m.p // number_gcd(m.p, rhs.p)
             try:
-                remainder = discrete_log(m / igcd(m, rhs), rhs, a.base)
+                remainder = discrete_log(mdiv, rhs.p, a.base.p)
             except ValueError:  # log does not exist
                 return modterm, rhs
             # period -> coefficient of n in the solution and also referred as
@@ -1344,7 +1343,7 @@ def _invert_modular(modterm, rhs, n, symbol):
             period = totient(m)
             for p in divisors(period):
                 # there might a lesser period exist than totient(m).
-                if pow(a.base, p, m / igcd(m, a.base)) == 1:
+                if pow(a.base, p, m / number_gcd(m.p, a.base.p)) == 1:
                     period = p
                     break
             # recursion is not applied here since _invert_modular is currently
@@ -3018,6 +3017,10 @@ def substitution(system, symbols, result=[{}], known_symbols=[],
     if not system:
         return S.EmptySet
 
+    for i, e in enumerate(system):
+        if isinstance(e, Eq):
+            system[i] = e.lhs - e.rhs
+
     if not symbols:
         msg = ('Symbols must be given, for which solution of the '
                'system is to be found.')
@@ -3312,7 +3315,7 @@ def substitution(system, symbols, result=[{}], known_symbols=[],
                             # list.
                             result.remove(res)
                     continue  # skip as it's independent of desired symbols
-                depen1, depen2 = (eq2.rewrite(Add)).as_independent(*unsolved_syms)
+                depen1, depen2 = eq2.as_independent(*unsolved_syms)
                 if (depen1.has(Abs) or depen2.has(Abs)) and solver == solveset_complex:
                     # Absolute values cannot be inverted in the
                     # complex domain
@@ -3528,8 +3531,8 @@ def _separate_poly_nonpoly(system, symbols):
         # Store denom expressions that contain symbols
         denominators.update(_simple_dens(eq, symbols))
         # Convert equality to expression
-        if isinstance(eq, Equality):
-            eq = eq.rewrite(Add)
+        if isinstance(eq, Eq):
+            eq = eq.lhs - eq.rhs
         # try to remove sqrt and rational power
         without_radicals = unrad(simplify(eq), *symbols)
         if without_radicals:

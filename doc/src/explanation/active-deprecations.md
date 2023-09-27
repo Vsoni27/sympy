@@ -76,6 +76,71 @@ SymPy deprecation warnings.
 
 ## Version 1.13
 
+(eq-rewrite-Add)=
+### Deprecate Eq.rewrite(Add)
+The ability to rewrite ``eq = Eq(x, y)`` like ``eq.rewrite(Add)`` to give ``x - y``
+has been deprecated in favor of writing ``eq.lhs - eq.rhs``. A replacement
+property/method was not deemed necessary given the clarity of the explicit
+use of ``lhs`` and ``rhs``, and the inclusion of this functionality in the
+rewrite apparatus leads to failures when a node expecting a Boolean is re-
+written as an Expr.
+
+
+(deprecated-markers-annotations-fill-rectangles)=
+### Deprecate markers, annotations, fill, rectangles of the Plot class
+The properties ``markers, annotations, fill, rectangles`` (containing
+user-provided numerical data to be added on a plot) are deprecated.
+The new implementation saves user-provided numerical data into appropriate
+data series, which can easily be processed by ``MatplotlibBackend``.
+Instead of setting those properties directly, users should pass the homonym
+keyword arguments to the plotting functions.
+
+The supported behavior is to pass keyword arguments to the plotting functions,
+which works fine for all versions of SymPy (before and after 1.13):
+
+```py
+p = plot(x,
+  markers=[{"args":[[0, 1], [0, 1]], "marker": "*", "linestyle": "none"}],
+  annotations=[{"text": "test", "xy": (0, 0)}],
+  fill={"x": [0, 1, 2, 3], "y1": [0, 1, 2, 3]},
+  rectangles=[{"xy": (0, 0), "width": 5, "height": 1}])
+```
+
+Setting attributes on the plot object is deprecated and will raise warnings:
+
+```py
+p = plot(x, show=False)
+p.markers = [{"args":[[0, 1], [0, 1]], "marker": "*", "linestyle": "none"}]
+p.annotations = [{"text": "test", "xy": (0, 0)}]
+p.fill = {"x": [0, 1, 2, 3], "y1": [0, 1, 2, 3]}
+p.rectangles = [{"xy": (0, 0), "width": 5, "height": 1}]
+p.show()
+```
+
+Motivation for this deprecation: the implementation of the ``Plot`` class
+suggests that it is ok to add attributes and hard-coded if-statements in the
+``MatplotlibBackend`` class to provide more and more functionalities for
+user-provided numerical data (e.g. adding horizontal lines, or vertical
+lines, or bar plots, etc). However, in doing so one would reinvent the wheel:
+plotting libraries already implements the necessary API. There is no need to
+hard code these things. The plotting module should facilitate the visualization
+of symbolic expressions. The best way to add custom numerical data is to
+retrieve the figure created by the plotting module and use the API of a
+particular plotting library. For example:
+
+```py
+# plot symbolic expression
+p = plot(cos(x))
+# retrieve Matplotlib's figure and axes object
+fig, ax = p._backend.fig, p._backend.ax[0]
+# add the desired numerical data using Matplotlib's API
+ax.plot([0, 1, 2], [0, 1, -1], "*")
+ax.axhline(0.5)
+# visualize the figure
+fig
+```
+
+
 (moved-mechanics-functions)=
 ### Moved mechanics functions
 With the introduction of some new objects like the ``Inertia`` and load objects
@@ -86,6 +151,7 @@ source code, due to the parity between function names and module names. The
 following functions were moved:
 - ``inertia`` has been moved to ``sympy.physics.mechanics.inertia``
 - ``inertia_of_point_mass`` has been moved to ``sympy.physics.mechanics.inertia``
+- ``gravity`` has been moved to ``sympy.physics.mechanics.loads``
 
 Previously you could import the functions from
 ``sympy.physics.mechanics.functions``:
@@ -98,7 +164,86 @@ Now they should be imported from ``sympy.physics.mechanics``:
 
 ```py
 >>> from sympy.physics.mechanics import inertia, inertia_of_point_mass
+>>> from sympy.physics.mechanics.loads import gravity
 ```
+
+
+modularinteger-to-int=
+### The ``ModularInteger.to_int()`` method
+
+SymPy's ``GF`` domains are for modular integers e.g. ``GF(n)`` is for the
+integers modulo ``n`` and can be used like:
+```py
+>>> from sympy import GF
+>>> K = GF(5)
+>>> a = K(7)
+>>> a
+2 mod 5
+```
+
+The elements of a modular integer domain have a ``to_int()`` method that is
+deprecated since SymPy 1.13:
+```py
+>>> # this is deprecated:
+>>> a.to_int()  # doctest: +SKIP
+2
+```
+
+Instead the preferred way to achieve equivalent behavior is to use the method
+on the domain (added in SymPy 1.13) or alternatively calling ``int`` might be
+better:
+```py
+>>> K.to_int(a)
+2
+>>> int(a)
+2
+```
+
+These two ways of converting to an ``int`` are not equivalent. The domain
+``GF(p)`` can be defined with ``symmetric=True`` or ``symmetric=False``. This
+difference affects the behavior of the ``to_int`` method:
+```py
+>>> KS = GF(5, symmetric=True)
+>>> KU = GF(5, symmetric=False)
+>>> [KS.to_int(KS(n)) for n in range(10)]
+[0, 1, 2, -2, -1, 0, 1, 2, -2, -1]
+>>> [KU.to_int(KU(n)) for n in range(10)]
+[0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
+>>> [int(KS(n)) for n in range(10)]
+[0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
+>>> [int(KU(n)) for n in range(10)]
+[0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
+```
+
+So if ``symmetric=True`` (which is the default) then the ``to_int`` method will
+sometimes return negative integers. If ``symmetric=False`` or if the ``int(a)``
+method is used the returned result is always a nonnegative integer. Note also
+that the behaviour of ``int(a)`` was changed in SymPy 1.13: in previous
+versions it was equivalent to ``a.to_int()``. To write code that behaves the
+same way in all SymPy versions you can:
+
+1. Use ``symmetric=False`` and use ``int(a)``.
+2. Define a function like
+    ```py
+    def to_int(K, a):
+        if hasattr(K, 'to_int'):
+            return K.to_int(a)
+        else:
+            return a.to_int()
+    ```
+
+The reason for this change is that it makes it possible to use python-flint's
+``nmod`` as an alternative (much faster) implementation for the elements of
+``GF(p)``. It is not possible to add a ``to_int`` method to python-flint's
+``nmod`` type or to capture the equivalent of ``symmetric=True/False`` by
+storing data in the ``nmod`` instance. Deprecating and removing the ``to_int``
+method and changing the behavior of the ``int`` method means that the element
+instances do not have any behavior that depends on whether the domain is
+considered to be "symmetric" or not. Instead the notion of "symmetric" is now
+purely a property of the domain object itself rather than of the elements and
+so the ``to_int`` method that depends on this must be a domain method rather
+than an element method.
+
 
 ## Version 1.12
 
@@ -580,14 +725,15 @@ Plotly, Mayavi, K3D only require lists of coordinates), this has been moved
 inside the `MatplotlibBackend` class.
 
 Note that previously, the method
-{meth}`~sympy.plotting.plot.Parametric2DLineSeries.get_points` always returned
+{meth}`~sympy.plotting.series.LineOver1DRangeSeries.get_points` always returned
 uniformly sampled points, which meant that some functions were not plotted
 correctly when using `get_points()` to plot with Matplotlib.
 
 To avoid this problem, the method `get_segments()` could be used, which used
 adaptive sampling and which could be used with Matplotlib's `LineCollection`.
 However, this has been changed, and now `get_points()` can also use adaptive
-sampling. The {meth}`~.get_data()` method can also be used.
+sampling. The {meth}`~sympy.plotting.series.Line2DBaseSeries.get_data()` method
+can also be used.
 
 
 (deprecated-physics-mdft)=

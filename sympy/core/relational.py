@@ -11,6 +11,8 @@ from .logic import fuzzy_bool, fuzzy_xor, fuzzy_and, fuzzy_not
 from sympy.logic.boolalg import Boolean, BooleanAtom
 from sympy.utilities.iterables import sift
 from sympy.utilities.misc import filldedent
+from sympy.utilities.exceptions import sympy_deprecation_warning
+
 
 __all__ = (
     'Rel', 'Eq', 'Ne', 'Lt', 'Le', 'Gt', 'Ge',
@@ -594,7 +596,7 @@ class Equality(Relational):
 
     Since this object is already an expression, it does not respond to
     the method ``as_expr`` if one tries to create `x - y` from ``Eq(x, y)``.
-    This can be done with the ``rewrite(Add)`` method.
+    If ``eq = Eq(x, y)`` then write `eq.lhs - eq.rhs` to get ``x - y``.
 
     .. deprecated:: 1.5
 
@@ -626,7 +628,7 @@ class Equality(Relational):
     def _eval_relation(cls, lhs, rhs):
         return _sympify(lhs == rhs)
 
-    def _eval_rewrite_as_Add(self, *args, **kwargs):
+    def _eval_rewrite_as_Add(self, L, R, evaluate=True, **kwargs):
         """
         return Eq(L, R) as L - R. To control the evaluation of
         the result set pass `evaluate=True` to give L - R;
@@ -634,6 +636,11 @@ class Equality(Relational):
         but they will be listed in canonical order; otherwise
         non-canonical args will be returned. If one side is 0, the
         non-zero side will be returned.
+
+        .. deprecated:: 1.13
+
+           The method ``Eq.rewrite(Add)`` is deprecated.
+           See :ref:`eq-rewrite-Add` for details.
 
         Examples
         ========
@@ -648,13 +655,21 @@ class Equality(Relational):
         >>> eq.rewrite(Add, evaluate=False).args
         (b, x, b, -x)
         """
+        sympy_deprecation_warning("""
+        Eq.rewrite(Add) is deprecated.
+
+        For ``eq = Eq(a, b)`` use ``eq.lhs - eq.rhs`` to obtain
+        ``a - b``.
+        """,
+            deprecated_since_version="1.13",
+            active_deprecations_target="eq-rewrite-Add",
+            stacklevel=5,
+        )
         from .add import _unevaluated_Add, Add
-        L, R = args
         if L == 0:
             return R
         if R == 0:
             return L
-        evaluate = kwargs.get('evaluate', True)
         if evaluate:
             # allow cancellation of args
             return L - R
@@ -689,7 +704,7 @@ class Equality(Relational):
                 from sympy.solvers.solveset import linear_coeffs
                 x = free.pop()
                 m, b = linear_coeffs(
-                    e.rewrite(Add, evaluate=False), x)
+                    Add(e.lhs, -e.rhs, evaluate=False), x)
                 if m.is_zero is False:
                     enew = e.func(x, -b / m)
                 else:

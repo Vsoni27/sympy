@@ -18,6 +18,8 @@ __all__ = [
 
     'inertia', 'inertia_of_point_mass', 'Inertia',
 
+    'Force', 'Torque',
+
     'Particle',
 
     'LagrangesMethod',
@@ -31,7 +33,14 @@ __all__ = [
     'PinJoint', 'PrismaticJoint', 'CylindricalJoint', 'PlanarJoint',
     'SphericalJoint', 'WeldJoint',
 
-    'JointsMethod'
+    'JointsMethod',
+
+    'WrappingCylinder', 'WrappingGeometryBase', 'WrappingSphere',
+
+    'PathwayBase', 'LinearPathway', 'ObstacleSetPathway', 'WrappingPathway',
+
+    'ActuatorBase', 'ForceActuator', 'LinearDamper', 'LinearSpring',
+    'TorqueActuator',
 ]
 
 from sympy.physics import vector
@@ -54,6 +63,8 @@ from .functions import (linear_momentum, angular_momentum, kinetic_energy,
 
 from .inertia import inertia, inertia_of_point_mass, Inertia
 
+from .loads import Force, Torque
+
 from .particle import Particle
 
 from .lagrange import LagrangesMethod
@@ -68,3 +79,12 @@ from .jointsmethod import JointsMethod
 
 from .joint import (PinJoint, PrismaticJoint, CylindricalJoint, PlanarJoint,
                     SphericalJoint, WeldJoint)
+
+from .wrapping_geometry import (WrappingCylinder, WrappingGeometryBase,
+                                WrappingSphere)
+
+from .pathway import (PathwayBase, LinearPathway, ObstacleSetPathway,
+                      WrappingPathway)
+
+from .actuator import (ActuatorBase, ForceActuator, LinearDamper, LinearSpring,
+                       TorqueActuator)

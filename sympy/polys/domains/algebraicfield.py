@@ -179,7 +179,7 @@ class AlgebraicField(Field, CharacteristicZero, SimpleDomain):
     >>> K.orig_ext
     (sqrt(2), sqrt(3))
     >>> K.mod
-    DMP([1, 0, -10, 0, 1], QQ, None)
+    DMP([1, 0, -10, 0, 1], QQ)
 
     The `discriminant`_ of the field can be obtained from the
     :py:meth:`~.discriminant` method, and an `integral basis`_ from the
@@ -307,7 +307,7 @@ class AlgebraicField(Field, CharacteristicZero, SimpleDomain):
         >>> from sympy import QQ, sqrt
         >>> K = QQ.algebraic_field(sqrt(2))
         >>> K.mod
-        DMP([1, 0, -2], QQ, None)
+        DMP([1, 0, -2], QQ)
         """
 
         self.domain = self.dom = dom
@@ -334,8 +334,10 @@ class AlgebraicField(Field, CharacteristicZero, SimpleDomain):
 
     def __eq__(self, other):
         """Returns ``True`` if two domains are equivalent. """
-        return isinstance(other, AlgebraicField) and \
-            self.dtype == other.dtype and self.ext == other.ext
+        if isinstance(other, AlgebraicField):
+            return self.dtype == other.dtype and self.ext == other.ext
+        else:
+            return NotImplemented
 
     def algebraic_field(self, *extension, alias=None):
         r"""Returns an algebraic field, i.e. `\mathbb{Q}(\alpha, \ldots)`. """

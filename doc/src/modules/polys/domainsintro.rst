@@ -49,7 +49,7 @@ representing the implementation of those coefficients::
   >>> p.domain
   QQ
   >>> p.rep
-  DMP([1, 1/2, 0], QQ, None)
+  DMP([1, 1/2, 0], QQ)
   >>> p.rep.rep
   [1, 1/2, 0]
   >>> type(p.rep.rep[0])  # doctest: +SKIP
@@ -289,14 +289,24 @@ multiplication will work for the elements of any domain and will produce new
 domain elements. Division with ``/`` (Python's "true division" operator) is not
 possible for all domains and should not be used with domain elements unless
 the domain is known to be a field. For example dividing two elements of :ref:`ZZ`
-gives a ``float`` which is not an element of :ref:`ZZ`::
+might give a ``float`` which is not an element of :ref:`ZZ`::
 
-  >>> z1 / z1
+  >>> z1 / z1  # doctest: +SKIP
   1.0
   >>> type(z1 / z1)  # doctest: +SKIP
   <class 'float'>
   >>> ZZ.is_Field
   False
+
+The behaviour of ``/`` for non-fields can also differ for different
+implementations of the ground types of the domain. For example with
+`SYMPY_GROUND_TYPES=flint` dividing two elements of :ref:`ZZ` will raise an
+error rather than return a float::
+
+   >>> z1 / z1  # doctest: +SKIP
+   Traceback (most recent call last):
+   ...
+   TypeError: unsupported operand type(s) for /: 'flint._flint.fmpz' and 'flint._flint.fmpz'
 
 Most domains representing non-field rings allow floor and modulo division
 (remainder) with Python's floor division ``//`` and modulo division ``%``
@@ -915,7 +925,7 @@ two versions of :ref:`K[x]` using :py:meth:`~.Domain.poly_ring` and
   >>> p1
   x**2 + 1
   >>> p2
-  x**2 + 1
+  DMP([1, 0, 1], ZZ)
   >>> type(K1)
   <class 'sympy.polys.domains.polynomialring.PolynomialRing'>
   >>> type(p1)
@@ -1354,7 +1364,7 @@ This is the internal implementation of :py:class:`~.Poly`::
 
   >>> d = p.rep  # internal representation of Poly
   >>> d
-  DMP([1, 0, 1], ZZ, None)
+  DMP([1, 0, 1], ZZ)
   >>> d.rep      # internal representation of DMP
   [1, 0, 1]
   >>> type(d.rep)
@@ -1451,7 +1461,7 @@ then we get a fully dense DMP list of lists of lists representation::
   >>> p
   Poly(x**2*y + z, x, y, z, domain='ZZ')
   >>> p.rep
-  DMP([[[1], []], [[]], [[1, 0]]], ZZ, None)
+  DMP([[[1], []], [[]], [[1, 0]]], ZZ)
   >>> p.rep.rep
   [[[1], []], [[]], [[1, 0]]]
   >>> p.rep.rep[0][0][0]
@@ -1466,7 +1476,7 @@ representation by choosing a generator that is not in the expression at all::
   >>> p
   Poly(x**2*y + z, t, domain='ZZ[x,y,z]')
   >>> p.rep
-  DMP([x**2*y + z], ZZ[x,y,z], None)
+  DMP([x**2*y + z], ZZ[x,y,z])
   >>> p.rep.rep[0]
   x**2*y + z
   >>> type(p.rep.rep[0])

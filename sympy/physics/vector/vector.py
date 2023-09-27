@@ -1,5 +1,5 @@
-from sympy.core.backend import (S, sympify, expand, sqrt, Add, zeros, acos,
-                                ImmutableMatrix as Matrix, _simplify_matrix)
+from sympy import (S, sympify, expand, sqrt, Add, zeros, acos,
+                                ImmutableMatrix as Matrix, simplify)
 from sympy.simplify.trigsimp import trigsimp
 from sympy.printing.defaults import Printable
 from sympy.utilities.misc import filldedent
@@ -513,17 +513,15 @@ class Vector(Printable, EvalfMixin):
 
         >>> from sympy import Symbol
         >>> from sympy.physics.vector import dynamicsymbols, ReferenceFrame
-        >>> from sympy.physics.vector import Vector
         >>> from sympy.physics.vector import init_vprinting
         >>> init_vprinting(pretty_print=False)
-        >>> Vector.simp = True
         >>> t = Symbol('t')
         >>> q1 = dynamicsymbols('q1')
         >>> N = ReferenceFrame('N')
         >>> A = N.orientnew('A', 'Axis', [q1, N.y])
         >>> A.x.diff(t, N)
         - sin(q1)*q1'*N.x - cos(q1)*q1'*N.z
-        >>> A.x.diff(t, N).express(A)
+        >>> A.x.diff(t, N).express(A).simplify()
         - q1'*A.z
         >>> B = ReferenceFrame('B')
         >>> u1, u2 = dynamicsymbols('u1, u2')
@@ -657,7 +655,7 @@ class Vector(Printable, EvalfMixin):
         """Returns a simplified Vector."""
         d = {}
         for v in self.args:
-            d[v[1]] = _simplify_matrix(v[0])
+            d[v[1]] = simplify(v[0])
         return Vector(d)
 
     def subs(self, *args, **kwargs):

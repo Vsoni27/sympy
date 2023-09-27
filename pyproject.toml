@@ -28,9 +28,9 @@ markers = [
 # Enable Pyflakes `E` and `F` codes by default.
 select = [
     "C40",
+    "C419",
     "E",
     "F",
-    "PIE802",
     "PIE810",
     "SIM101",
 ]
@@ -105,6 +105,7 @@ ignore_errors = true
 module = [
     "antlr4.*",
     "Cython.*",
+    "flint.*",
     "gmpy.*",
     "gmpy2.*",
     "IPython.*",
